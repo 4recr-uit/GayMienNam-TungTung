@@ -31,13 +31,19 @@ class WeatherRepository(
 
     suspend fun getWeather(query: String): WeatherResponse {
         requireKey()
-        return service.getCurrent(apiKey, query.trim())
+        val normalizedQuery = query.trim()
+        return ApiLogStore.track("/current.json", normalizedQuery) {
+            service.getCurrent(apiKey, normalizedQuery)
+        }
     }
 
     suspend fun searchCities(query: String): List<SearchResultDto> {
         requireKey()
         if (query.isBlank()) return emptyList()
-        return service.search(apiKey, query.trim())
+        val normalizedQuery = query.trim()
+        return ApiLogStore.track("/search.json", normalizedQuery) {
+            service.search(apiKey, normalizedQuery)
+        }
     }
 
     suspend fun getWeathers(
@@ -47,7 +53,11 @@ class WeatherRepository(
         requireKey()
         val jobs = queries.map { q ->
             async {
-                runCatching { service.getCurrent(apiKey, q) to q }
+                runCatching {
+                    ApiLogStore.track("/current.json", q) {
+                        service.getCurrent(apiKey, q)
+                    } to q
+                }
             }
         }
         val items = mutableListOf<CityWeatherUi>()

@@ -2,6 +2,7 @@ package dev.zr0x8.nt118.gaymiennam.data
 
 import retrofit2.http.GET
 import retrofit2.http.Query
+import retrofit2.Response
 
 /**
  * docs: https://www.weatherapi.com/docs/
@@ -14,11 +15,11 @@ interface WeatherApiService {
         @Query("key") key: String,
         @Query("q") query: String,
         @Query("aqi") aqi: String = "no"
-    ): WeatherResponse
+    ): Response<WeatherResponse>
 
     @GET("search.json")
     suspend fun search(
         @Query("key") key: String,
         @Query("q") query: String
-    ): List<SearchResultDto>
+    ): Response<List<SearchResultDto>>
 }

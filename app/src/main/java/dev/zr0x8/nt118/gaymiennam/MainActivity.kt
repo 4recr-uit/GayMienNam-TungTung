@@ -19,17 +19,21 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import dev.zr0x8.nt118.gaymiennam.data.CityStore
+import dev.zr0x8.nt118.gaymiennam.data.ApiLogStore
 import dev.zr0x8.nt118.gaymiennam.data.WeatherRepository
 import dev.zr0x8.nt118.gaymiennam.data.friendlyMessage
 import dev.zr0x8.nt118.gaymiennam.databinding.ActivityMainBinding
 import dev.zr0x8.nt118.gaymiennam.ui.CityWeatherAdapter
+import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : AppCompatActivity() {
 
@@ -72,6 +76,29 @@ class MainActivity : AppCompatActivity() {
         })
         binding.rvCities.layoutManager = LinearLayoutManager(this)
         binding.rvCities.adapter = adapter
+
+        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("Thời tiết"))
+        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("API log"))
+        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                val showLogs = tab.position == 1
+                binding.weatherContent.visibility =
+                    if (showLogs) android.view.View.GONE else android.view.View.VISIBLE
+                binding.apiLogContent.visibility =
+                    if (showLogs) android.view.View.VISIBLE else android.view.View.GONE
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        })
+        binding.btnClearApiLogs.setOnClickListener { ApiLogStore.clear() }
+        lifecycleScope.launch {
+            ApiLogStore.entries.collect { entries ->
+                binding.tvApiLogs.text = entries.asReversed()
+                    .joinToString(separator = "\n\n")
+                    .ifEmpty { "Chưa có API request nào." }
+            }
+        }
 
         binding.btnAdd.setOnClickListener { addCityFromInput() }
         binding.etCity.setOnEditorActionListener { _, actionId, _ ->
@@ -186,7 +213,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Bước 2: xin fix mới
-        withTimeoutOrNull(12_000) {
+        withTimeoutOrNull(12_000.milliseconds) {
             suspendCancellableCoroutine { cont ->
                 var done = false
                 val listener = LocationListener { loc ->
